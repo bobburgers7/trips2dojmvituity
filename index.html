@@ -1,49 +1,122 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>World Travel Map</title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-  <style>
-    body, html { margin: 0; padding: 0; height: 100%; }
-    #map { height: 100%; width: 100%; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Travel Map with Colored SVG Markers</title>
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet/dist/leaflet.css"
+/>
+<style>
+  html,
+  body,
+  #map {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+</style>
 </head>
 <body>
-  <div id="map"></div>
+<div id="map"></div>
 
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
-  <script>
-    const MAP = L.map('map').setView([20, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(MAP);
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+<script>
+  // Initialize map
+  const MAP = L.map("map").setView([20, 0], 2);
 
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTEmF0OSAMFJjQZLt-ZdWGD0sYucQn7qMHnzt4H-QS_mF37LYRNbpsKI4xXPBfihdcIRs5SOoXVqGGz/pub?gid=0&single=true&output=csv';
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+  }).addTo(MAP);
 
-    function fetchAndDisplay() {
-      Papa.parse(CSV_URL, {
-        download: true,
-        header: true,
-        complete: function(results) {
-          for (const row of results.data) {
-            const { Name, Location, Date, 'Itinerary/Notes': Notes, Latitude, Longitude } = row;
-            const lat = parseFloat(Latitude);
-            const lon = parseFloat(Longitude);
+  // Color palette for names
+  const colorPalette = [
+    "#e6194b",
+    "#3cb44b",
+    "#ffe119",
+    "#4363d8",
+    "#f58231",
+    "#911eb4",
+    "#46f0f0",
+    "#f032e6",
+    "#bcf60c",
+    "#fabebe",
+    "#008080",
+    "#e6beff",
+    "#9a6324",
+    "#fffac8",
+    "#800000",
+    "#aaffc3",
+    "#808000",
+    "#ffd8b1",
+    "#000075",
+    "#808080",
+  ];
 
-            if (!isNaN(lat) && !isNaN(lon)) {
-              L.marker([lat, lon])
-                .addTo(MAP)
-                .bindPopup(`<strong>${Name}</strong><br>${Location}<br>${Date}<br><em>${Notes}</em>`);
-            }
+  const nameColors = {};
+  let colorIndex = 0;
+
+  function getColorForName(name) {
+    if (!nameColors[name]) {
+      nameColors[name] = colorPalette[colorIndex % colorPalette.length];
+      colorIndex++;
+    }
+    return nameColors[name];
+  }
+
+  function createColoredSvgMarker(color) {
+    const svg = `
+      <svg width="30" height="42" viewBox="0 0 30 42" xmlns="http://www.w3.org/2000/svg">
+        <path fill="${color}" stroke="black" stroke-width="2" d="M15 1 C22 1 28 7 28 14 C28 26 15 41 15 41 C15 41 2 26 2 14 C2 7 8 1 15 1 Z"/>
+      </svg>
+    `;
+    return L.divIcon({
+      className: "",
+      html: svg,
+      iconSize: [30, 42],
+      iconAnchor: [15, 41],
+    });
+  }
+
+  const CSV_URL =
+    "https://docs.google.com/spreadsheets/d/e/2PACX-1vTEmF0OSAMFJjQZLt-ZdWGD0sYucQn7qMHnzt4H-QS_mF37LYRNbpsKI4xXPBfihdcIRs5SOoXVqGGz/pub?gid=0&single=true&output=csv";
+
+  function fetchAndDisplay() {
+    Papa.parse(CSV_URL, {
+      download: true,
+      header: true,
+      complete: function (results) {
+        for (const row of results.data) {
+          const {
+            Name,
+            Location,
+            Date,
+            "Itinerary/Notes": Notes,
+            Latitude,
+            Longitude,
+          } = row;
+
+          const lat = parseFloat(Latitude);
+          const lon = parseFloat(Longitude);
+
+          if (!isNaN(lat) && !isNaN(lon)) {
+            const color = getColorForName(Name);
+            const icon = createColoredSvgMarker(color);
+
+            L.marker([lat, lon], { icon: icon })
+              .addTo(MAP)
+              .bindPopup(
+                `<strong>${Name}</strong><br>${Location}<br>${Date}<br><em>${Notes}</em>`
+              );
           }
         }
-      });
-    }
+      },
+    });
+  }
 
-    fetchAndDisplay();
-  </script>
+  fetchAndDisplay();
+</script>
 </body>
 </html>
