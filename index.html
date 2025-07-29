@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Travel Data Viewer</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>World Travel Data</h1>
+  <table id="travelTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Location</th>
+        <th>Date</th>
+        <th>Itinerary/Notes</th>
+        <th>Latitude</th>
+        <th>Longitude</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTEmF0OSAMFJjQZLt-ZdWGD0sYucQn7qMHnzt4H-QS_mF37LYRNbpsKI4xXPBfihdcIRs5SOoXVqGGz/pub?gid=0&single=true&output=csv';
+
+    async function geocode(location) {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`;
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'YourAppNameHere/1.0 (your.email@example.com)' }
+      });
+      const data = await response.json();
+      if (data.length > 0) {
+        const { lat, lon } = data[0];
+        return [parseFloat(lat), parseFloat(lon)];
+      }
+      return ["N/A", "N/A"];
+    }
+
+    function fetchAndDisplay() {
+      Papa.parse(CSV_URL, {
+        download: true,
+        header: true,
+        complete: async function(results) {
+          const tbody = document.querySelector('#travelTable tbody');
+          for (const row of results.data) {
+            const { Name, Location, Date, 'Itinerary/Notes': Notes } = row;
+            let lat = "";
+            let lon = "";
+            if (Location) {
+              [lat, lon] = await geocode(Location);
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${Name}</td>
+              <td>${Location}</td>
+              <td>${Date}</td>
+              <td>${Notes}</td>
+              <td>${lat}</td>
+              <td>${lon}</td>
+            `;
+            tbody.appendChild(tr);
+          }
+        }
+      });
+    }
+
+    fetchAndDisplay();
+  </script>
+</body>
+</html>
